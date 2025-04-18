@@ -8,7 +8,7 @@ st.title("⚽ La Liga 2024/2025 - Datos en Vivo y Predicciones")
 
 # ------------------- CONFIG -------------------
 ZYLALABS_API_URL = "https://zylalabs.com/api/857/la+liga+table+api/635/obtain+la+liga+table"
-TEMPORADA = "2024"
+TEMPORADA = "2023"
 # ----------------------------------------------
 
 @st.cache_data(ttl=300)  # se actualiza cada 5 minutos
