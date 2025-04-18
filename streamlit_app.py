@@ -3,54 +3,59 @@ import requests
 import pandas as pd
 import matplotlib.pyplot as plt
 
-st.set_page_config(page_title="La Liga Live ⚽", layout="wide")
-st.title("⚽ La Liga 2024/2025 - Datos en Vivo y Predicciones")
+st.set_page_config(page_title="La Liga Live 2025", layout="wide")
+st.title("⚽ La Liga 2024/2025 - En Vivo con Predicciones")
 
-# ------------------- CONFIG -------------------
-ZYLALABS_API_URL = "https://zylalabs.com/api/857/la+liga+table+api/635/obtain+la+liga+table"
-TEMPORADA = "2023"
-# ----------------------------------------------
+API_KEY = "33247bdd475582ecc4324a116254a287"
+LEAGUE_ID = 140  # La Liga
+SEASON = 2024
+HEADERS = {
+    "x-apisports-key": API_KEY
+}
 
-@st.cache_data(ttl=300)  # se actualiza cada 5 minutos
+@st.cache_data(ttl=300)
 def obtener_tabla():
+    url = f"https://v3.football.api-sports.io/standings"
+    params = {"league": LEAGUE_ID, "season": SEASON}
+    response = requests.get(url, headers=HEADERS, params=params)
+    data = response.json()
     try:
-        response = requests.get(ZYLALABS_API_URL, params={"season": TEMPORADA})
-        data = response.json()
+        equipos = data["response"][0]["league"]["standings"][0]
         tabla = []
-        for team in data:
+        for team in equipos:
             tabla.append({
-                "Posición": team["position"],
+                "Posición": team["rank"],
                 "Equipo": team["team"]["name"],
-                "PJ": team["stats"]["played"],
-                "G": team["stats"]["wins"],
-                "E": team["stats"]["draws"],
-                "P": team["stats"]["loses"],
-                "GF": team["stats"]["goalsFor"],
-                "GC": team["stats"]["goalsAgainst"],
-                "Pts": team["stats"]["points"]
+                "PJ": team["all"]["played"],
+                "G": team["all"]["win"],
+                "E": team["all"]["draw"],
+                "P": team["all"]["lose"],
+                "GF": team["all"]["goals"]["for"],
+                "GC": team["all"]["goals"]["against"],
+                "Pts": team["points"]
             })
         return pd.DataFrame(tabla)
-    except Exception as e:
+    except:
         return None
 
-# Obtener tabla y mostrar
-st.subheader("📊 Tabla de posiciones")
+# Obtener tabla
 tabla_df = obtener_tabla()
 
+st.subheader("📊 Tabla de Posiciones - La Liga 2024/2025")
 if tabla_df is not None:
     st.dataframe(tabla_df.sort_values("Posición"), use_container_width=True)
 
-    # Gráfico de barras - Puntos por equipo
-    st.subheader("📈 Comparación de puntos")
+    # Gráfico
+    st.subheader("📈 Gráfico de Puntos")
     fig, ax = plt.subplots(figsize=(10, 6))
-    ax.barh(tabla_df["Equipo"], tabla_df["Pts"], color="skyblue")
-    ax.invert_yaxis()
+    ax.barh(tabla_df["Equipo"], tabla_df["Pts"], color="deepskyblue")
     ax.set_xlabel("Puntos")
-    ax.set_title("Puntos por equipo")
+    ax.set_title("Puntos por Equipo")
+    ax.invert_yaxis()
     st.pyplot(fig)
 
     # Predicción
-    st.subheader("🔮 Predicción de partido")
+    st.subheader("🔮 Predicción de Partido")
     equipos = tabla_df["Equipo"].tolist()
     col1, col2 = st.columns(2)
     with col1:
@@ -61,14 +66,14 @@ if tabla_df is not None:
     if equipo1 != equipo2:
         stats1 = tabla_df[tabla_df["Equipo"] == equipo1].iloc[0]
         stats2 = tabla_df[tabla_df["Equipo"] == equipo2].iloc[0]
-
+        st.markdown("### Resultado Probable")
         if stats1["Pts"] > stats2["Pts"]:
-            st.success(f"✅ {equipo1} tiene más chances de ganar.")
+            st.success(f"{equipo1} tiene más chances de ganar.")
         elif stats2["Pts"] > stats1["Pts"]:
-            st.success(f"✅ {equipo2} tiene más chances de ganar.")
+            st.success(f"{equipo2} tiene más chances de ganar.")
         else:
-            st.info("⚠️ Es un partido parejo, puede ser empate.")
+            st.info("Es un partido muy parejo. Empate posible.")
     else:
         st.warning("Elegí dos equipos distintos.")
 else:
-    st.error("⚠️ No se pudo cargar la tabla. Intentá más tarde o verificá la API.")
+    st.error("⚠️ No se pudo cargar la tabla. Verificá tu API Key o intentá más tarde.")
